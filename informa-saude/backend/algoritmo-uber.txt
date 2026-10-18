@@ -1,0 +1,125 @@
+"""
+Algoritmo de Haversine para cálculo de distância entre coordenadas geográficas
+
+Usar para calcular distância entre localização do usuário e estabelecimentos de saúde.
+
+Fórmula: https://en.wikipedia.org/wiki/Haversine_formula
+"""
+
+from math import radians, sin, cos, sqrt, atan2
+
+
+def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """
+    Calcula a distância em quilômetros entre duas coordenadas geográficas.
+
+    Usa a Fórmula de Haversine para calcular a distância de "grande círculo"
+    entre dois pontos na esfera terrestre.
+
+    Args:
+        lat1 (float): Latitude do primeiro ponto (em graus)
+        lon1 (float): Longitude do primeiro ponto (em graus)
+        lat2 (float): Latitude do segundo ponto (em graus)
+        lon2 (float): Longitude do segundo ponto (em graus)
+
+    Returns:
+        float: Distância em quilômetros
+
+    Example:
+        >>> # Distância entre Hospital Central e Hospital Moinhos de Vento em POA
+        >>> lat1, lon1 = -30.0333, -51.2298  # Hospital Central
+        >>> lat2, lon2 = -30.0089, -51.2167  # Hospital Moinhos de Vento
+        >>> distancia = haversine(lat1, lon1, lat2, lon2)
+        >>> print(f"Distância: {distancia:.2f} km")
+        Distância: 4.23 km
+    """
+
+    # Raio da Terra em quilômetros
+    R = 6371
+
+    # Converter graus em radianos
+    lat1_rad = radians(lat1)
+    lon1_rad = radians(lon1)
+    lat2_rad = radians(lat2)
+    lon2_rad = radians(lon2)
+
+    # Diferença de coordenadas
+    dlat = lat2_rad - lat1_rad
+    dlon = lon2_rad - lon1_rad
+
+    # Fórmula de Haversine
+    a = sin(dlat / 2) ** 2 + cos(lat1_rad) * cos(lat2_rad) * sin(dlon / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    # Distância em km
+    distancia = R * c
+
+    return distancia
+
+
+def calcular_distancias(lat_usuario: float, lon_usuario: float, estabelecimentos: list) -> list:
+    """
+    Calcula distância do usuário para cada estabelecimento e retorna lista ordenada.
+
+    Args:
+        lat_usuario (float): Latitude do usuário
+        lon_usuario (float): Longitude do usuário
+        estabelecimentos (list): Lista de dicts com lat/lng
+
+    Returns:
+        list: Estabelecimentos com campo 'distancia' adicionado, ordenados por distância
+
+    Example:
+        >>> usuarios_lat, usuarios_lng = -30.0333, -51.2298
+        >>> estabelecimentos = [
+        ...     {"id": 1, "nome": "Hospital A", "lat": -30.0456, "lng": -51.2145},
+        ...     {"id": 2, "nome": "Hospital B", "lat": -30.0089, "lng": -51.2167}
+        ... ]
+        >>> resultado = calcular_distancias(usuarios_lat, usuarios_lng, estabelecimentos)
+        >>> for est in resultado:
+        ...     print(f"{est['nome']}: {est['distancia']:.2f} km")
+    """
+
+    # Adiciona distância a cada estabelecimento
+    com_distancia = []
+    for est in estabelecimentos:
+        distancia = haversine(
+            lat_usuario,
+            lon_usuario,
+            est["lat"],
+            est["lng"]
+        )
+
+        # Cria cópia do estabelecimento com campo de distância
+        est_com_dist = est.copy()
+        est_com_dist["distancia"] = round(distancia, 2)
+        com_distancia.append(est_com_dist)
+
+    # Ordena por distância (menor primeiro)
+    com_distancia.sort(key=lambda x: x["distancia"])
+
+    return com_distancia
+
+
+def filtrar_por_raio(estabelecimentos_com_distancia: list, raio: int = 20) -> list:
+    """
+    Filtra estabelecimentos que estão dentro de um raio específico.
+
+    Args:
+        estabelecimentos_com_distancia (list): Lista com campo 'distancia' calculado
+        raio (int): Raio em quilômetros (default: 20)
+
+    Returns:
+        list: Estabelecimentos dentro do raio especificado
+
+    Example:
+        >>> estabelecimentos = [
+        ...     {"nome": "Hospital A", "distancia": 2.3},
+        ...     {"nome": "Hospital B", "distancia": 5.2},
+        ...     {"nome": "Hospital C", "distancia": 15.0}
+        ... ]
+        >>> resultado = filtrar_por_raio(estabelecimentos, raio=20)
+        >>> len(resultado)
+        2
+    """
+    return [e for e in estabelecimentos_com_distancia if e["distancia"] <= raio]

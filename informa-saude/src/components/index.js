@@ -22,6 +22,8 @@ export { AccordionItem } from './Accordion/AccordionItem';
 export { ScrollToTop } from './ScrollToTop/ScrollToTop';
 export { DropdownSistema } from './DropdownSistema/DropdownSistema';
 export { IconeContraste } from './IconeContraste/IconeContraste';
+export { ModalRedeSaude } from './ModalRedeSaude/ModalRedeSaude';
+
 
 
 

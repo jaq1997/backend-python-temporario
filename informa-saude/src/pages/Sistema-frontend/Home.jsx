@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom';
-import { Play, Award, Home as HomeIcon, User, Gift, BookOpen, Hospital } from 'lucide-react';
+import { useState } from 'react';
+import { User, Gift, BookOpen, Hospital } from 'lucide-react';
 import imgCardiaca from '../../assets/images/imagem-cardiaca.webp';
 import imgSono from '../../assets/images/imagem-sono.webp';
 import imgRespiracao from '../../assets/images/imagem-respiracao.webp';
@@ -9,9 +9,12 @@ import {
   CardSistema,
   FooterSistemaMobile,
   TituloPaginaSistema,
-  TituloSecao
+  TituloSecao,
+  ModalRedeSaude,
 } from '../../components';
 import { obterNomeUsuario } from '../../utils/usuario';
+import { useUser } from '../../context/UserContext';
+
 
 const ACOES_RAPIDAS = [
   { id: 'jornadas', icone: BookOpen, titulo: 'Jornadas', href: '#jornadas' },
@@ -40,24 +43,32 @@ const JORNADAS_RECOMENDADAS = [
     id: 'sono',
     imagem: imgSono,
     titulo: 'Jornada do Sono',
+    descricao: 'Construa hábitos saudáveis e conheça práticas de higiene do sono para descansar melhor.',
     textoBotao: 'Iniciar Jornada'
   },
   {
     id: 'cardiaca',
     imagem: imgCardiaca,
     titulo: 'Jornada Cardíaca',
+    descricao: 'Aprenda como pequenos hábitos diários podem auxiliar na prevenção e no cuidado cardiovascular.',
     textoBotao: 'Iniciar Jornada'
   },
   {
     id: 'respiratoria',
     imagem: imgRespiracao,
     titulo: 'Jornada Respiratória',
+    descricao: 'Conheça práticas de respiração e cuidados diários para o bem-estar respiratório.',
     textoBotao: 'Iniciar Jornada'
   }
 ];
 
 export function HomeSistema() {
   const nomeUsuario = obterNomeUsuario();
+  const { jornadaRecomendada } = useUser();
+  const [modalRedeAberto, setModalRedeAberto] = useState(false);
+  const jornadaDestaque = JORNADAS_RECOMENDADAS.find(
+    (jornada) => jornada.id === jornadaRecomendada
+  ) || JORNADAS_RECOMENDADAS.find((jornada) => jornada.id === 'cardiaca');
 
   return (
     <div className="bg-light min-vh-100 pb-5">
@@ -75,21 +86,31 @@ export function HomeSistema() {
           <div className="row g-3">
             {ACOES_RAPIDAS.map((acao) => (
               <div key={acao.id} className="col-6 col-md-4 col-lg-3">
-                <CardSistema isAcao icone={acao.icone} titulo={acao.titulo} href={acao.href} to={acao.to} />
+                {acao.id === 'rede-publica' ? (
+                  <div role="button" onClick={() => setModalRedeAberto(true)} style={{ cursor: 'pointer' }}>
+                    <CardSistema isAcao icone={acao.icone} titulo={acao.titulo} />
+                  </div>
+                ) : (
+                  <CardSistema isAcao icone={acao.icone} titulo={acao.titulo} href={acao.href} to={acao.to} />
+                )}
               </div>
             ))}
           </div>
         </section>
 
+        {/* Modal de Busca de UPAs e Hospitais (Geolocalização / ViaCEP) */}
+        <ModalRedeSaude aberto={modalRedeAberto} aoFechar={() => setModalRedeAberto(false)} />
+
+
         <CardSistema
           isMedia
           isHero
-          imagem={imgCardiaca}
-          subtitulo="Comece sua"
-          titulo="Jornada Cardíaca"
-          descricao="Aprenda como pequenos hábitos diários podem auxiliar na prevenção de infarto, controle de hipertensão e muito mais!"
-          textoBotao="Iniciar Jornada"
-          to="/jornada/cardiaca"
+          imagem={jornadaDestaque.imagem}
+          subtitulo="Sua jornada recomendada"
+          titulo={jornadaDestaque.titulo}
+          descricao={jornadaDestaque.descricao}
+          textoBotao={jornadaDestaque.textoBotao}
+          to={`/jornada/${jornadaDestaque.id}`}
           className="mb-5"
         />
 

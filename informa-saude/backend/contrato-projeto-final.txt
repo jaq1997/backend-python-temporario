@@ -1,0 +1,306 @@
+# 📋 Contrato API - Informa Saúde
+
+> Definição de endpoints e payloads entre Frontend ↔ Backend
+
+**Última atualização:** 17/10/2026  
+**Status:** MVP - Questionário e busca de estabelecimentos documentados conforme o backend atual
+
+---
+
+## 🔐 AUTENTICAÇÃO
+
+### POST `/api/auth/register`
+Criar novo usuário
+
+**Request:**
+```json
+{
+  "email": "usuario@example.com",
+  "senha": "senha_segura",
+  "nome": "João Silva",
+  "idade": 45
+}
+```
+
+**Response (201):**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "usuario_id": 42
+}
+```
+
+---
+
+### POST `/api/auth/login`
+Autenticar usuário
+
+**Request:**
+```json
+{
+  "email": "usuario@example.com",
+  "senha": "senha_segura"
+}
+```
+
+**Response (200):**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "usuario_id": 42
+}
+```
+
+---
+
+## 🏥 REDE DE SAÚDE
+
+### GET `/api/estabelecimentos/proximos`
+Retorna UPAs e hospitais ativos dentro do raio, ordenados por proximidade.
+
+**Query Parameters:**
+- `lat` (float, obrigatório): Latitude do usuário
+- `lng` (float, obrigatório): Longitude do usuário
+- `raio` (float, opcional): Raio de busca em km (default: 20)
+
+**Example Request:**
+```
+GET /api/estabelecimentos/proximos?lat=-30.0333&lng=-51.2298&raio=20
+```
+
+**Response (200):**
+```json
+[
+  {
+    "id": 1,
+    "nome": "UPA Bom Jesus",
+    "tipo": "UPA",
+    "distancia_km": 3.1,
+    "endereco": "Rua Bom Jesus, 410",
+    "bairro": "Bom Jesus",
+    "telefone": "(51) 3289-5450",
+    "horario_funcionamento": "24 Horas",
+    "latitude": -30.046901,
+    "longitude": -51.161118,
+    "ativo": true,
+    "cep": "91420-030",
+    "codigo_cnes": "7712392"
+  }
+]
+```
+
+Quando nenhum estabelecimento estiver dentro do raio, a API retorna `200` com `[]`.
+
+### GET `/api/estabelecimentos/por-cep`
+Alternativa quando a pessoa não autorizar a geolocalização do navegador. O backend consulta ViaCEP e converte o endereço em coordenadas com Nominatim.
+
+**Query Parameters:**
+- `cep` (string, obrigatório): CEP com ou sem hífen
+- `raio` (float, opcional): Raio de busca em km (default: 20)
+
+**Response:** Mesmo formato de `/api/estabelecimentos/proximos`.
+
+**Response (422):** CEP inválido ou não encontrado.
+
+**Response (502):** Serviço externo de CEP/geocodificação indisponível.
+
+---
+
+## 📋 QUESTIONÁRIO
+
+### GET `/api/questionario/perguntas`
+Retorna as 9 perguntas e opções atuais. Textos e pesos são placeholders em revisão.
+
+### POST `/api/questionario/resultado`
+Recebe uma resposta para cada uma das 9 perguntas, calcula a pontuação e salva o resultado associado ao usuário.
+
+**Request:**
+```json
+{
+  "usuario_id": 42,
+  "respostas": {
+    "1": "b",
+    "2": "c",
+    "3": "a",
+    "4": "d",
+    "5": "a",
+    "6": "b",
+    "7": "c",
+    "8": "b",
+    "9": "a"
+  }
+}
+```
+
+**Response (200):**
+```json
+{
+  "jornada_recomendada": "sono",
+  "pontuacao": {
+    "cardiaca": 6,
+    "sono": 7,
+    "respiratoria": 6
+  },
+  "empate": false,
+  "mensagem": "Com base nas suas respostas, a Jornada do Sono é a mais indicada para você. Um bom descanso transforma tudo! 💚"
+}
+```
+
+**Response (422) - Respostas incompletas, pergunta inexistente ou opção inválida:**
+```json
+{
+  "detail": "Respostas incompletas. Perguntas não respondidas: 2, 5."
+}
+```
+
+---
+
+## 🎯 JORNADA DO USUÁRIO
+
+### GET `/api/jornada/{usuario_id}`
+Retorna informações da jornada ativa do usuário
+
+**Response (200):**
+```json
+{
+  "usuario_id": 42,
+  "jornada_ativa": {
+    "id": "1",
+    "tipo": "cardíaca",
+    "titulo": "Jornada Cardíaca",
+    "descricao": "Cuidando do coração e da pressão arterial",
+    "progresso_percent": 67
+  },
+  "conteudos": [
+    {
+      "id": "1",
+      "titulo": "Controlando o colesterol na alimentação",
+      "tipo": "texto",
+      "concluido": true,
+      "data_conclusao": "2026-10-10T14:30:00"
+    },
+    {
+      "id": "2",
+      "titulo": "Hábitos que auxiliam no controle da hipertensão",
+      "tipo": "texto",
+      "concluido": false,
+      "data_conclusao": null
+    },
+    {
+      "id": "3",
+      "titulo": "Entendo os principais sinais do Infarto",
+      "tipo": "video",
+      "concluido": false,
+      "data_conclusao": null
+    }
+  ]
+}
+```
+
+---
+
+## 📚 CONTEÚDO
+
+### GET `/api/conteudo/{conteudo_id}`
+Retorna detalhes de um conteúdo específico
+
+**Response (200):**
+```json
+{
+  "id": "1",
+  "titulo": "Controlando o colesterol na alimentação",
+  "descricao": "Aprenda quais alimentos ajudam a controlar o colesterol...",
+  "corpo": "Lorem ipsum dolor sit amet...",
+  "tipo": "texto",
+  "jornada_tipo": "cardíaca",
+  "ordem": 1
+}
+```
+
+---
+
+### POST `/api/conteudo/{conteudo_id}/visualizar`
+Marca conteúdo como visualizado e adiciona pontos
+
+**Request:**
+```json
+{
+  "usuario_id": 42
+}
+```
+
+**Response (200):**
+```json
+{
+  "pontos_ganhos": 50,
+  "pontos_totais": 150,
+  "nivel": 2,
+  "badges_novas": ["Protetor do Coração"]
+}
+```
+
+---
+
+## 📊 DASHBOARD
+
+### GET `/api/dashboard/{usuario_id}`
+Retorna dados do dashboard do usuário
+
+**Response (200):**
+```json
+{
+  "usuario": {
+    "nome": "João Silva",
+    "nivel": 2,
+    "pontos_totais": 150
+  },
+  "jornada_ativa": {
+    "tipo": "cardíaca",
+    "progresso_percent": 67,
+    "conteudos_concluidos": 2,
+    "conteudos_totais": 3
+  },
+  "pontos": {
+    "totais": 150,
+    "por_jornada": {
+      "cardíaca": 150,
+      "sono": 0,
+      "respiratória": 0
+    }
+  },
+  "streak_dias": 5,
+  "badges": [
+    {
+      "nome": "Primeiro Passo Cardíaco",
+      "desbloqueada": true,
+      "data_desbloqueio": "2026-10-05T10:00:00"
+    },
+    {
+      "nome": "Protetor do Coração",
+      "desbloqueada": false,
+      "progresso": "2/3"
+    }
+  ]
+}
+```
+
+---
+
+## 📝 Notas Importantes
+
+- Os IDs de usuário usados pelo contrato são inteiros.
+- A autenticação JWT está sendo integrada; os routers de questionário e estabelecimentos deste backend ainda não validam bearer tokens.
+- Coordenadas geográficas usam latitude/longitude (WGS84)
+- Distâncias são calculadas usando Fórmula de Haversine
+- Timestamp padrão: ISO 8601 (UTC)
+- O raio padrão da busca de estabelecimentos é 20 km.
+- Todas as 9 respostas do questionário são obrigatórias; o desempate prioriza cardíaca, respiratória e sono.
+
+---
+
+**Status de Implementação:**
+- 🟡 Autenticação: Em integração com os demais endpoints
+- 🟡 Rede de Saúde: MVP com carga manual de estabelecimentos
+- 🟡 Questionário: Pesos e textos são placeholders sujeitos à validação
+- 🔴 Jornada: Aguardando definição de regras
+- 🔴 Dashboard: Aguardando definição de regras
