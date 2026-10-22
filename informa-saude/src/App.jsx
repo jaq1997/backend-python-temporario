@@ -17,7 +17,7 @@ import NaoEncontrada from "./pages/NaoEncontrada/NaoEncontrada";
 import JornadaDetalhesPage from "./pages/Sistema-frontend/JornadaDetalhesPage";
 
 import { ScrollToTop } from './components';
-import { UserProvider } from './context/UserContext';
+import { UserProvider } from './context/UserContext.jsx';
 
 function LandingPage() {
   const [modalConfig, setModalConfig] = useState({ aberto: false, abaInicial: 'login' });

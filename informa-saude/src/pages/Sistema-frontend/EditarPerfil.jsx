@@ -1,34 +1,24 @@
 import { useEffect, useState } from 'react';
-import fotoPerfil from '../../assets/images/foto-perfil.webp';
 import { SystemNavbar, ToastFeedback, FormInput, TituloPaginaSistema, CardPerfilSidebar } from '../../components';
+import { useUser } from '../../context/userContextStore';
+import { obterFotoPerfil, salvarFotoPerfil } from '../../utils/fotoPerfil';
 
 export function EditarPerfil() {
-  const dadosIniciais = {
-    nome: 'João da Silva',
-    email: 'joaodasilva@example.com',
-    telefone: '(51) 9 9999 - 9999',
-    dataNascimento: '23/03/1954',
-  };
-  const [nome, setNome] = useState('João da Silva');
-  const [email, setEmail] = useState('joaodasilva@example.com');
-  const [telefone, setTelefone] = useState('(51) 9 9999 - 9999');
-  const [dataNascimento, setDataNascimento] = useState('23/03/1954');
+  const { usuario, atualizarUsuario } = useUser();
+  const [nome, setNome] = useState(() => usuario?.nome || '');
+  const [email, setEmail] = useState(() => usuario?.email || '');
+  const [telefone, setTelefone] = useState(() => usuario?.telefone || '');
+  const [dataNascimento, setDataNascimento] = useState(
+    () => usuario?.dataNascimento || usuario?.data_nascimento || ''
+  );
   const [modoEdicao, setModoEdicao] = useState(false);
   const [toastSucesso, setToastSucesso] = useState(false);
   const [toastFotoMsg, setToastFotoMsg] = useState(null);
-  const [foto, setFoto] = useState(() => {
-    const fotoSalva = localStorage.getItem('informa-saude-foto-perfil');
-    if (fotoSalva === 'null') return null;
-    return fotoSalva || fotoPerfil;
-  });
+  const [foto, setFoto] = useState(obterFotoPerfil);
 
   const atualizarFotoPerfil = (novaFoto) => {
     setFoto(novaFoto);
-    if (novaFoto) {
-      localStorage.setItem('informa-saude-foto-perfil', novaFoto);
-    } else {
-      localStorage.setItem('informa-saude-foto-perfil', 'null');
-    }
+    salvarFotoPerfil(novaFoto);
     window.dispatchEvent(new Event('foto-perfil-atualizada'));
   };
 
@@ -41,15 +31,21 @@ export function EditarPerfil() {
 
   const handleSalvar = (e) => {
     e.preventDefault();
+    atualizarUsuario({
+      nome,
+      email,
+      telefone,
+      dataNascimento
+    });
     setModoEdicao(false);
     setToastSucesso(true);
   };
 
   const handleCancelarEdicao = () => {
-    setNome(dadosIniciais.nome);
-    setEmail(dadosIniciais.email);
-    setTelefone(dadosIniciais.telefone);
-    setDataNascimento(dadosIniciais.dataNascimento);
+    setNome(usuario?.nome || '');
+    setEmail(usuario?.email || '');
+    setTelefone(usuario?.telefone || '');
+    setDataNascimento(usuario?.dataNascimento || usuario?.data_nascimento || '');
     setModoEdicao(false);
   };
 
@@ -103,6 +99,11 @@ export function EditarPerfil() {
                   </button>
                 )}
               </div>
+              {!modoEdicao && (
+                <p className="text-muted small mb-3">
+                  Seus dados estão em modo de leitura. Selecione <strong>Editar</strong> para alterá-los.
+                </p>
+              )}
 
               <form onSubmit={handleSalvar}>
                 <div className="row g-3">
@@ -113,7 +114,8 @@ export function EditarPerfil() {
                       type="text"
                       value={nome}
                       onChange={(e) => setNome(e.target.value)}
-                      disabled={!modoEdicao}
+                      readOnly={!modoEdicao}
+                      inputClassName={!modoEdicao ? 'is-profile-input-readonly' : ''}
                       required
                     />
                   </div>
@@ -125,7 +127,8 @@ export function EditarPerfil() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      disabled={!modoEdicao}
+                      readOnly={!modoEdicao}
+                      inputClassName={!modoEdicao ? 'is-profile-input-readonly' : ''}
                       required
                     />
                   </div>
@@ -137,7 +140,8 @@ export function EditarPerfil() {
                       type="tel"
                       value={telefone}
                       onChange={(e) => setTelefone(e.target.value)}
-                      disabled={!modoEdicao}
+                      readOnly={!modoEdicao}
+                      inputClassName={!modoEdicao ? 'is-profile-input-readonly' : ''}
                       required
                     />
                   </div>
@@ -151,7 +155,8 @@ export function EditarPerfil() {
                       maxLength={10}
                       value={dataNascimento}
                       onChange={(e) => setDataNascimento(formatarDataNascimento(e.target.value))}
-                      disabled={!modoEdicao}
+                      readOnly={!modoEdicao}
+                      inputClassName={!modoEdicao ? 'is-profile-input-readonly' : ''}
                       required
                     />
                   </div>

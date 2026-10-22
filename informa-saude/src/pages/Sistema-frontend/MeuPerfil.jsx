@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Settings, KeyRound, LogOut } from 'lucide-react';
-import fotoPerfilInicial from '../../assets/images/foto-perfil.webp';
+import { obterFotoPerfil, salvarFotoPerfil } from '../../utils/fotoPerfil';
 import {
   SystemNavbar,
   ItemMeuPerfil,
@@ -19,20 +19,12 @@ export function MeuPerfil() {
   const emailUsuario = obterEmailUsuario();
   const [modalSair, setModalSair] = useState(false);
   const [modalSenha, setModalSenha] = useState(false);
-  const [foto, setFoto] = useState(() => {
-    const fotoSalva = localStorage.getItem('informa-saude-foto-perfil');
-    if (fotoSalva === 'null') return null;
-    return fotoSalva || fotoPerfilInicial;
-  });
+  const [foto, setFoto] = useState(obterFotoPerfil);
   const [toastMsg, setToastMsg] = useState(null);
 
   const atualizarFotoPerfil = (novaFoto) => {
     setFoto(novaFoto);
-    if (novaFoto) {
-      localStorage.setItem('informa-saude-foto-perfil', novaFoto);
-    } else {
-      localStorage.setItem('informa-saude-foto-perfil', 'null');
-    }
+    salvarFotoPerfil(novaFoto);
     window.dispatchEvent(new Event('foto-perfil-atualizada'));
   };
 

@@ -1,201 +1,88 @@
-"""
-Serviço de scoring do questionário de triagem InformaSaúde.
+"""Scoring de interesse nas jornadas de educação em saúde."""
 
-Cada pergunta pertence a uma jornada. Cada opção dá 1–4 pontos àquela jornada.
-A jornada com MAIOR pontuação total é a recomendada (estilo Duolingo).
+import json
+from pathlib import Path
 
-ATENÇÃO: o conteúdo das perguntas (titulo, subtitulo, opcoes.titulo, opcoes.descricao)
-deve ser atualizado pelo time — apenas o scoring (pontos) é fixo aqui.
-O array PERGUNTAS também é exportado para que o frontend possa consumi-lo via
-GET /api/questionario/perguntas, caso queiram centralizar no backend.
-"""
+JORNADAS = ["cardiaca", "respiratoria", "sono"]
 
-PERGUNTAS = [
-    # ── JORNADA CARDÍACA (Q1–Q3) ─────────────────────────────────────────────
-    {
-        "id": "1",
-        "jornada": "cardiaca",
-        "titulo": "Pergunta 1 — Cardíaca",  # TODO: substituir pelo texto real
-        "subtitulo": "Selecione a opção que melhor descreve sua situação",
-        "opcoes": [
-            {"id": "a", "titulo": "Opção A", "descricao": "...", "pontos": {"cardiaca": 1}},
-            {"id": "b", "titulo": "Opção B", "descricao": "...", "pontos": {"cardiaca": 2}},
-            {"id": "c", "titulo": "Opção C", "descricao": "...", "pontos": {"cardiaca": 3}},
-            {"id": "d", "titulo": "Opção D", "descricao": "...", "pontos": {"cardiaca": 4}},
-        ],
-    },
-    {
-        "id": "2",
-        "jornada": "cardiaca",
-        "titulo": "Pergunta 2 — Cardíaca",
-        "subtitulo": "Selecione a opção que melhor descreve sua situação",
-        "opcoes": [
-            {"id": "a", "titulo": "Opção A", "descricao": "...", "pontos": {"cardiaca": 1}},
-            {"id": "b", "titulo": "Opção B", "descricao": "...", "pontos": {"cardiaca": 2}},
-            {"id": "c", "titulo": "Opção C", "descricao": "...", "pontos": {"cardiaca": 3}},
-            {"id": "d", "titulo": "Opção D", "descricao": "...", "pontos": {"cardiaca": 4}},
-        ],
-    },
-    {
-        "id": "3",
-        "jornada": "cardiaca",
-        "titulo": "Pergunta 3 — Cardíaca",
-        "subtitulo": "Selecione a opção que melhor descreve sua situação",
-        "opcoes": [
-            {"id": "a", "titulo": "Opção A", "descricao": "...", "pontos": {"cardiaca": 1}},
-            {"id": "b", "titulo": "Opção B", "descricao": "...", "pontos": {"cardiaca": 2}},
-            {"id": "c", "titulo": "Opção C", "descricao": "...", "pontos": {"cardiaca": 3}},
-            {"id": "d", "titulo": "Opção D", "descricao": "...", "pontos": {"cardiaca": 4}},
-        ],
-    },
-    # ── JORNADA DO SONO (Q4–Q6) ──────────────────────────────────────────────
-    {
-        "id": "4",
-        "jornada": "sono",
-        "titulo": "Pergunta 4 — Sono",
-        "subtitulo": "Selecione a opção que melhor descreve sua situação",
-        "opcoes": [
-            {"id": "a", "titulo": "Opção A", "descricao": "...", "pontos": {"sono": 1}},
-            {"id": "b", "titulo": "Opção B", "descricao": "...", "pontos": {"sono": 2}},
-            {"id": "c", "titulo": "Opção C", "descricao": "...", "pontos": {"sono": 3}},
-            {"id": "d", "titulo": "Opção D", "descricao": "...", "pontos": {"sono": 4}},
-        ],
-    },
-    {
-        "id": "5",
-        "jornada": "sono",
-        "titulo": "Pergunta 5 — Sono",
-        "subtitulo": "Selecione a opção que melhor descreve sua situação",
-        "opcoes": [
-            {"id": "a", "titulo": "Opção A", "descricao": "...", "pontos": {"sono": 1}},
-            {"id": "b", "titulo": "Opção B", "descricao": "...", "pontos": {"sono": 2}},
-            {"id": "c", "titulo": "Opção C", "descricao": "...", "pontos": {"sono": 3}},
-            {"id": "d", "titulo": "Opção D", "descricao": "...", "pontos": {"sono": 4}},
-        ],
-    },
-    {
-        "id": "6",
-        "jornada": "sono",
-        "titulo": "Pergunta 6 — Sono",
-        "subtitulo": "Selecione a opção que melhor descreve sua situação",
-        "opcoes": [
-            {"id": "a", "titulo": "Opção A", "descricao": "...", "pontos": {"sono": 1}},
-            {"id": "b", "titulo": "Opção B", "descricao": "...", "pontos": {"sono": 2}},
-            {"id": "c", "titulo": "Opção C", "descricao": "...", "pontos": {"sono": 3}},
-            {"id": "d", "titulo": "Opção D", "descricao": "...", "pontos": {"sono": 4}},
-        ],
-    },
-    # ── JORNADA RESPIRATÓRIA (Q7–Q9) ─────────────────────────────────────────
-    {
-        "id": "7",
-        "jornada": "respiratoria",
-        "titulo": "Pergunta 7 — Respiratória",
-        "subtitulo": "Selecione a opção que melhor descreve sua situação",
-        "opcoes": [
-            {"id": "a", "titulo": "Opção A", "descricao": "...", "pontos": {"respiratoria": 1}},
-            {"id": "b", "titulo": "Opção B", "descricao": "...", "pontos": {"respiratoria": 2}},
-            {"id": "c", "titulo": "Opção C", "descricao": "...", "pontos": {"respiratoria": 3}},
-            {"id": "d", "titulo": "Opção D", "descricao": "...", "pontos": {"respiratoria": 4}},
-        ],
-    },
-    {
-        "id": "8",
-        "jornada": "respiratoria",
-        "titulo": "Pergunta 8 — Respiratória",
-        "subtitulo": "Selecione a opção que melhor descreve sua situação",
-        "opcoes": [
-            {"id": "a", "titulo": "Opção A", "descricao": "...", "pontos": {"respiratoria": 1}},
-            {"id": "b", "titulo": "Opção B", "descricao": "...", "pontos": {"respiratoria": 2}},
-            {"id": "c", "titulo": "Opção C", "descricao": "...", "pontos": {"respiratoria": 3}},
-            {"id": "d", "titulo": "Opção D", "descricao": "...", "pontos": {"respiratoria": 4}},
-        ],
-    },
-    {
-        "id": "9",
-        "jornada": "respiratoria",
-        "titulo": "Pergunta 9 — Respiratória",
-        "subtitulo": "Selecione a opção que melhor descreve sua situação",
-        "opcoes": [
-            {"id": "a", "titulo": "Opção A", "descricao": "...", "pontos": {"respiratoria": 1}},
-            {"id": "b", "titulo": "Opção B", "descricao": "...", "pontos": {"respiratoria": 2}},
-            {"id": "c", "titulo": "Opção C", "descricao": "...", "pontos": {"respiratoria": 3}},
-            {"id": "d", "titulo": "Opção D", "descricao": "...", "pontos": {"respiratoria": 4}},
-        ],
-    },
-]
-
-# Índice rápido: pergunta_id → {opcao_id → pontos}
-_INDICE: dict[str, dict[str, dict[str, int]]] = {
-    p["id"]: {op["id"]: op["pontos"] for op in p["opcoes"]} for p in PERGUNTAS
+_ROTULOS_JORNADA = {
+    "cardiaca": "Jornada Cardíaca",
+    "respiratoria": "Jornada Respiratória",
+    "sono": "Jornada do Sono",
 }
 
-JORNADAS = ["cardiaca", "sono", "respiratoria"]
+_CONFIG_PATH = Path(__file__).resolve().parent.parent / "data" / "questionario.json"
+with _CONFIG_PATH.open(encoding="utf-8") as arquivo_config:
+    PERGUNTAS = json.load(arquivo_config)["perguntas"]
 
-# Prioridade de desempate (mais urgente ganha em caso de empate)
-_PRIORIDADE_EMPATE = {"cardiaca": 3, "respiratoria": 2, "sono": 1}
+_INDICE: dict[str, dict[str, str]] = {
+    pergunta["id"]: {
+        opcao["id"]: opcao["jornada"]
+        for opcao in pergunta["opcoes"]
+    }
+    for pergunta in PERGUNTAS
+}
 
 
-def calcular_resultado(respostas: dict[str, str]) -> dict:
-    """
-    Recebe {pergunta_id: opcao_id} e retorna o resultado com pontuação e
-    jornada recomendada.
-
-    Raises:
-        ValueError: se houver pergunta ausente, pergunta desconhecida ou opção inválida.
-    """
-    perguntas_esperadas = {p["id"] for p in PERGUNTAS}
+def calcular_resultado(
+    respostas: dict[str, str],
+    jornada_escolhida: str | None = None,
+) -> dict:
+    """Conta escolhas por jornada e valida o desempate quando necessário."""
+    perguntas_esperadas = {pergunta["id"] for pergunta in PERGUNTAS}
     perguntas_ausentes = perguntas_esperadas - respostas.keys()
     if perguntas_ausentes:
-        ausentes = ", ".join(sorted(perguntas_ausentes, key=int))
+        ausentes = ", ".join(sorted(perguntas_ausentes))
         raise ValueError(f"Respostas incompletas. Perguntas não respondidas: {ausentes}.")
 
-    pontuacao: dict[str, int] = {j: 0 for j in JORNADAS}
-    empate = False
+    perguntas_desconhecidas = respostas.keys() - perguntas_esperadas
+    if perguntas_desconhecidas:
+        desconhecidas = ", ".join(sorted(perguntas_desconhecidas))
+        raise ValueError(f"Perguntas não encontradas: {desconhecidas}.")
 
+    pontuacao = {jornada: 0 for jornada in JORNADAS}
     for pergunta_id, opcao_id in respostas.items():
-        if pergunta_id not in _INDICE:
-            raise ValueError(f"Pergunta '{pergunta_id}' não encontrada.")
-        opcoes_da_pergunta = _INDICE[pergunta_id]
-        if opcao_id not in opcoes_da_pergunta:
+        jornada = _INDICE[pergunta_id].get(opcao_id)
+        if jornada is None:
             raise ValueError(
                 f"Opção '{opcao_id}' inválida para pergunta '{pergunta_id}'."
             )
-        for jornada, pts in opcoes_da_pergunta[opcao_id].items():
-            pontuacao[jornada] = pontuacao.get(jornada, 0) + pts
+        pontuacao[jornada] += 1
 
-    score_maximo = max(pontuacao.values())
-    vencedoras = [j for j, s in pontuacao.items() if s == score_maximo]
+    maior_pontuacao = max(pontuacao.values())
+    jornadas_empatadas = [
+        jornada for jornada, pontos in pontuacao.items()
+        if pontos == maior_pontuacao
+    ]
+    empate = len(jornadas_empatadas) > 1
 
-    if len(vencedoras) > 1:
-        empate = True
-        # Desempate por prioridade clínica definida em _PRIORIDADE_EMPATE
-        jornada_recomendada = max(vencedoras, key=lambda j: _PRIORIDADE_EMPATE[j])
+    if empate:
+        if jornada_escolhida is None:
+            jornada_recomendada = None
+            mensagem = "Suas respostas apontam mais de uma jornada de interesse. Escolha por qual prefere começar."
+        elif jornada_escolhida not in jornadas_empatadas:
+            raise ValueError(
+                "Escolha uma das jornadas empatadas para concluir o questionário."
+            )
+        else:
+            jornada_recomendada = jornada_escolhida
+            mensagem = (
+                "Suas respostas apontam mais de uma jornada de interesse. "
+                f"Você escolheu começar pela {_ROTULOS_JORNADA[jornada_recomendada]}."
+            )
     else:
-        jornada_recomendada = vencedoras[0]
-
-    mensagem = _gerar_mensagem(jornada_recomendada)
+        jornada_recomendada = jornadas_empatadas[0]
+        if jornada_escolhida and jornada_escolhida != jornada_recomendada:
+            raise ValueError("A jornada escolhida não corresponde à maior pontuação.")
+        mensagem = (
+            f"Com base nas suas respostas, sugerimos começar pela "
+            f"{_ROTULOS_JORNADA[jornada_recomendada]}."
+        )
 
     return {
         "jornada_recomendada": jornada_recomendada,
         "pontuacao": pontuacao,
         "empate": empate,
+        "jornadas_empatadas": jornadas_empatadas if empate else [],
         "mensagem": mensagem,
     }
-
-
-def _gerar_mensagem(jornada: str) -> str:
-    mensagens = {
-        "cardiaca": (
-            "Com base nas suas respostas, a Jornada Cardíaca é a mais indicada "
-            "para você. Vamos juntos cuidar da sua saúde cardiovascular! 💚"
-        ),
-        "sono": (
-            "Com base nas suas respostas, a Jornada do Sono é a mais indicada "
-            "para você. Um bom descanso transforma tudo! 💚"
-        ),
-        "respiratoria": (
-            "Com base nas suas respostas, a Jornada Respiratória é a mais indicada "
-            "para você. Respire bem e viva melhor! 💚"
-        ),
-    }
-    return mensagens.get(jornada, "Jornada recomendada com sucesso! 💚")

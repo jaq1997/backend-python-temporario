@@ -1,32 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
-import fotoPerfil from '../../assets/images/foto-perfil.webp';
 import { BarraAcessibilidade } from '../BarraAcessibilidade/BarraAcessibilidade';
 import { AvatarUsuario } from '../AvatarUsuario/AvatarUsuario';
 import { Logo } from '../Logo/Logo';
 import { obterNomeUsuario } from '../../utils/usuario';
+import { obterFotoPerfil } from '../../utils/fotoPerfil';
 
 export function SystemNavbar() {
   const navigate = useNavigate();
   const nomeUsuario = obterNomeUsuario();
   const [modalSair, setModalSair] = useState(false);
-  const [fotoNavbar, setFotoNavbar] = useState(() => {
-    const fotoSalva = localStorage.getItem('informa-saude-foto-perfil');
-    if (fotoSalva === 'null') return null;
-    return fotoSalva || fotoPerfil;
-  });
+  const [fotoNavbar, setFotoNavbar] = useState(obterFotoPerfil);
 
   useEffect(() => {
     const atualizarFoto = () => {
-      const fotoSalva = localStorage.getItem('informa-saude-foto-perfil');
-      if (fotoSalva === 'null') {
-        setFotoNavbar(null);
-      } else if (fotoSalva) {
-        setFotoNavbar(fotoSalva);
-      } else {
-        setFotoNavbar(fotoPerfil);
-      }
+      setFotoNavbar(obterFotoPerfil());
     };
 
     window.addEventListener('storage', atualizarFoto);

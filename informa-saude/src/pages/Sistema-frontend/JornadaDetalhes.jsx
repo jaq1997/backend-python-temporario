@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Play, ArrowLeft, Clock } from 'lucide-react';
+import { Play, ArrowLeft, ExternalLink, X } from 'lucide-react';
 import { JORNADAS_DATA } from '../../data/jornadasData';
 import {
   SystemNavbar,
@@ -13,12 +13,31 @@ export function JornadaDetalhes({ jornadaData: propJornada }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [abaAtiva, setAbaAtiva] = useState('episodios');
+  const [videoAtivoId, setVideoAtivoId] = useState(null);
 
   const jornadaId = propJornada?.id || id || 'cardiaca';
   const jornada = propJornada || JORNADAS_DATA[jornadaId] || JORNADAS_DATA.cardiaca;
 
   const episodios = jornada.episodios || [];
+  const videoAtivo = episodios.find((episodio) => episodio.id === videoAtivoId);
   const noticias = jornada.noticias || [];
+
+  useEffect(() => {
+    if (!videoAtivo) return undefined;
+
+    const overflowAnterior = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const fecharComEscape = (event) => {
+      if (event.key === 'Escape') setVideoAtivoId(null);
+    };
+    window.addEventListener('keydown', fecharComEscape);
+
+    return () => {
+      document.body.style.overflow = overflowAnterior;
+      window.removeEventListener('keydown', fecharComEscape);
+    };
+  }, [videoAtivo]);
 
   const opcoesJornadas = [
     { valor: 'cardiaca', label: 'Jornada Cardíaca' },
@@ -82,10 +101,17 @@ export function JornadaDetalhes({ jornadaData: propJornada }) {
               <span>•</span>
               <span>{jornada.totalEpisodios || episodios.length} episódios</span>
               <span>•</span>
-              <span>{jornada.duracaoTotal || '30 min'}</span>
+              <span>Vídeos do YouTube</span>
             </div>
 
-            <BotaoSistema variante="orange">
+            <BotaoSistema
+              variante="orange"
+              onClick={() => {
+                setAbaAtiva('episodios');
+                setVideoAtivoId(episodios[0]?.id);
+                document.getElementById('jornada-episodios')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
               <Play size={18} fill="currentColor" />
               <span>{jornada.progresso > 0 ? 'Continuar jornada' : 'Iniciar jornada'}</span>
             </BotaoSistema>
@@ -112,7 +138,7 @@ export function JornadaDetalhes({ jornadaData: propJornada }) {
         </div>
 
         {abaAtiva === 'episodios' && (
-          <section className="mb-5">
+          <section className="mb-5" id="jornada-episodios">
             <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
               <div>
                 <h4 className="fw-bold mb-1 fs-5 text-white">
@@ -143,20 +169,26 @@ export function JornadaDetalhes({ jornadaData: propJornada }) {
 
                     <div className="col-12 col-sm-4 col-md-3">
                       <div className="is-jornada-thumb-container">
-                        <img
-                          src={ep.thumb || jornada.imagemCapa}
-                          alt={ep.titulo}
-                          className="w-100 h-100 object-fit-cover"
-                        />
-                        <div className="position-absolute top-50 start-50 translate-middle">
-                          <button
-                            type="button"
-                            className="btn is-jornada-play-badge"
-                            aria-label={`Reproduzir ${ep.titulo}`}
-                          >
-                            <Play size={18} fill="currentColor" className="ms-1" />
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          className="is-jornada-video-thumbnail"
+                          onClick={() => setVideoAtivoId(ep.id)}
+                          aria-label={`Reproduzir ${ep.titulo}`}
+                        >
+                          <img
+                            src={`https://img.youtube.com/vi/${ep.youtubeId}/mqdefault.jpg`}
+                            alt=""
+                            className="is-jornada-thumbnail-image"
+                            onError={(event) => {
+                              event.currentTarget.src = ep.thumb || jornada.imagemCapa;
+                            }}
+                          />
+                          <span className="position-absolute top-50 start-50 translate-middle">
+                            <span className="btn is-jornada-play-badge">
+                              <Play size={18} fill="currentColor" className="ms-1" />
+                            </span>
+                          </span>
+                        </button>
                         {ep.concluido && (
                           <div className="is-jornada-done-badge">
                             ✓ CONCLUÍDO
@@ -172,12 +204,14 @@ export function JornadaDetalhes({ jornadaData: propJornada }) {
                       <p className="fw-medium mb-0 text-white-50 fs-6">
                         {ep.descricao}
                       </p>
-                    </div>
-
-                    <div className="col-12 col-md-auto d-flex flex-column align-items-md-end justify-content-center">
-                      <span className="d-inline-flex align-items-center gap-1 fw-bold text-white fs-6">
-                        <Clock size={16} /> {ep.duracao || '10 min'}
-                      </span>
+                      <a
+                        href={`https://www.youtube.com/watch?v=${ep.youtubeId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="d-inline-flex align-items-center gap-1 mt-2 text-is-orange"
+                      >
+                        Assistir no YouTube <ExternalLink size={14} />
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -272,6 +306,49 @@ export function JornadaDetalhes({ jornadaData: propJornada }) {
           </div>
         </section>
       </main>
+
+      {videoAtivo && (
+        <div
+          className="is-video-modal-overlay"
+          role="presentation"
+          onClick={() => setVideoAtivoId(null)}
+        >
+          <section
+            className="is-video-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={videoAtivo.titulo}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="is-video-modal-close"
+              onClick={() => setVideoAtivoId(null)}
+              aria-label="Fechar vídeo"
+            >
+              <X size={24} />
+            </button>
+            <div className="is-video-modal-player">
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${videoAtivo.youtubeId}?autoplay=1`}
+                title={videoAtivo.titulo}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+              />
+            </div>
+            <h2 className="is-video-modal-title">{videoAtivo.titulo}</h2>
+            <a
+              href={`https://www.youtube.com/watch?v=${videoAtivo.youtubeId}`}
+              target="_blank"
+              rel="noreferrer"
+              className="is-video-modal-link"
+            >
+              Assistir no YouTube <ExternalLink size={16} />
+            </a>
+          </section>
+        </div>
+      )}
 
       <FooterSistemaMobile />
     </div>

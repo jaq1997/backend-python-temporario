@@ -4,6 +4,7 @@ import imgCardiaca from '../../assets/images/imagem-cardiaca.webp';
 import imgSono from '../../assets/images/imagem-sono.webp';
 import imgRespiracao from '../../assets/images/imagem-respiracao.webp';
 import imgProgresso from '../../assets/images/acompanhe-progresso.webp';
+import { JORNADAS_DATA } from '../../data/jornadasData';
 import {
   SystemNavbar,
   CardSistema,
@@ -13,7 +14,7 @@ import {
   ModalRedeSaude,
 } from '../../components';
 import { obterNomeUsuario } from '../../utils/usuario';
-import { useUser } from '../../context/UserContext';
+import { useUser } from '../../context/userContextStore';
 
 
 const ACOES_RAPIDAS = [
@@ -23,20 +24,39 @@ const ACOES_RAPIDAS = [
   { id: 'perfil', icone: User, titulo: 'Meu Perfil', to: '/meu-perfil' }
 ];
 
-const JORNADAS_EM_ANDAMENTO = [
-  {
-    id: 1,
-    categoria: 'Hipertensão',
-    titulo: 'Controlando o colesterol na alimentação',
-    progresso: 65
-  },
-  {
-    id: 2,
-    categoria: 'Prevenção',
-    titulo: 'Hábitos diários para o controle da glicemia',
-    progresso: 30
+const CHAVE_CONTEUDOS_EM_ANDAMENTO = 'informa-saude-conteudos-em-andamento';
+
+function obterConteudosEmAndamento(jornadaId) {
+  const jornada = JORNADAS_DATA[jornadaId];
+  if (!jornada) return [];
+
+  try {
+    const progressoSalvo = JSON.parse(
+      localStorage.getItem(CHAVE_CONTEUDOS_EM_ANDAMENTO) || '{}'
+    );
+    const episodiosSalvos = progressoSalvo[jornadaId];
+    if (!episodiosSalvos || typeof episodiosSalvos !== 'object' || Array.isArray(episodiosSalvos)) {
+      return [];
+    }
+
+    return Object.entries(episodiosSalvos).flatMap(([episodioId, progresso]) => {
+      const episodio = jornada.episodios.find(({ id }) => id === episodioId);
+      if (!episodio || typeof progresso !== 'number' || progresso <= 0 || progresso >= 100) {
+        return [];
+      }
+
+      return [{
+        id: `${jornadaId}-${episodioId}`,
+        categoria: jornada.categoria,
+        titulo: episodio.titulo,
+        progresso: Math.floor(progresso)
+      }];
+    });
+  } catch (erro) {
+    console.error('Não foi possível ler o progresso dos conteúdos salvos.', erro);
+    return [];
   }
-];
+}
 
 const JORNADAS_RECOMENDADAS = [
   {
@@ -66,10 +86,10 @@ export function HomeSistema() {
   const nomeUsuario = obterNomeUsuario();
   const { jornadaRecomendada } = useUser();
   const [modalRedeAberto, setModalRedeAberto] = useState(false);
+  const [conteudosEmAndamento] = useState(() => obterConteudosEmAndamento(jornadaRecomendada));
   const jornadaDestaque = JORNADAS_RECOMENDADAS.find(
     (jornada) => jornada.id === jornadaRecomendada
-  ) || JORNADAS_RECOMENDADAS.find((jornada) => jornada.id === 'cardiaca');
-
+  );
   return (
     <div className="bg-light min-vh-100 pb-5">
       <SystemNavbar />
@@ -102,37 +122,52 @@ export function HomeSistema() {
         <ModalRedeSaude aberto={modalRedeAberto} aoFechar={() => setModalRedeAberto(false)} />
 
 
-        <CardSistema
-          isMedia
-          isHero
-          imagem={jornadaDestaque.imagem}
-          subtitulo="Sua jornada recomendada"
-          titulo={jornadaDestaque.titulo}
-          descricao={jornadaDestaque.descricao}
-          textoBotao={jornadaDestaque.textoBotao}
-          to={`/jornada/${jornadaDestaque.id}`}
-          className="mb-5"
-        />
+        {jornadaDestaque ? (
+          <CardSistema
+            isMedia
+            isHero
+            imagem={jornadaDestaque.imagem}
+            subtitulo="Sua jornada recomendada"
+            titulo={jornadaDestaque.titulo}
+            descricao={jornadaDestaque.descricao}
+            textoBotao={jornadaDestaque.textoBotao}
+            to={`/jornada/${jornadaDestaque.id}`}
+            className="mb-5"
+          />
+        ) : (
+          <CardSistema
+            isMedia
+            isHero
+            subtitulo="Comece por aqui"
+            titulo="Escolha sua jornada"
+            descricao="Responda ao questionário de preferência para receber uma sugestão de tema para começar."
+            textoBotao="Responder ao questionário"
+            to="/questionario"
+            className="mb-5"
+          />
+        )}
 
-        <section className="mb-5">
-          <TituloSecao>Continue Assistindo</TituloSecao>
-          <div className="row g-3">
-            {JORNADAS_EM_ANDAMENTO.map((jornada) => (
-              <div key={jornada.id} className="col-12 col-md-6 col-lg-4">
-                <CardSistema
-                  isProgresso
-                  categoria={jornada.categoria}
-                  titulo={jornada.titulo}
-                  progresso={jornada.progresso}
-                  to="/jornada/cardiaca"
-                />
-              </div>
-            ))}
-          </div>
-        </section>
+        {conteudosEmAndamento.length > 0 && (
+          <section className="mb-5">
+            <TituloSecao>Continue Assistindo</TituloSecao>
+            <div className="row g-3">
+              {conteudosEmAndamento.map((conteudo) => (
+                <div key={conteudo.id} className="col-12 col-md-6 col-lg-4">
+                  <CardSistema
+                    isProgresso
+                    categoria={conteudo.categoria}
+                    titulo={conteudo.titulo}
+                    progresso={conteudo.progresso}
+                    to={`/jornada/${jornadaRecomendada}`}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="mb-5" id="jornadas">
-          <TituloSecao>Jornadas Recomendadas</TituloSecao>
+          <TituloSecao>Explore as jornadas</TituloSecao>
           <div className="row g-4">
             {JORNADAS_RECOMENDADAS.map((jornada) => (
               <div key={jornada.id} className="col-12 col-md-6 col-lg-4">

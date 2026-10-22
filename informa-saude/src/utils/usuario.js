@@ -5,7 +5,8 @@ export function obterNomeUsuario() {
       const dados = JSON.parse(usuarioSalvo);
       if (dados?.nome) return dados.nome;
       if (typeof dados === 'string') return dados;
-    } catch {
+    } catch (erro) {
+      console.warn('Não foi possível interpretar os dados do usuário ativo.', erro);
       if (typeof usuarioSalvo === 'string') return usuarioSalvo;
     }
   }
@@ -18,7 +19,9 @@ export function obterNomeUsuario() {
         const ultima = contas[contas.length - 1];
         if (ultima?.nome) return ultima.nome;
       }
-    } catch {}
+    } catch (erro) {
+      console.warn('Não foi possível interpretar a lista de contas locais.', erro);
+    }
   }
 
   return 'João da Silva';
@@ -30,7 +33,9 @@ export function obterEmailUsuario() {
     try {
       const dados = JSON.parse(usuarioSalvo);
       if (dados?.email) return dados.email;
-    } catch {}
+    } catch (erro) {
+      console.warn('Não foi possível interpretar o e-mail do usuário ativo.', erro);
+    }
   }
   return 'joaodasilva@example.com';
 }

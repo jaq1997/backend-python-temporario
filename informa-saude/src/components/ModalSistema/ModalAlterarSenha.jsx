@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ModalSistema } from './ModalSistema';
 import { FormInput } from '../FormInput/FormInput';
 import { BotaoSistema } from '../Botao/BotaoSistema';

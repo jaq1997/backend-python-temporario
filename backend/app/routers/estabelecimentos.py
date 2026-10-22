@@ -10,19 +10,41 @@ from ..schemas.estabelecimento import (
     EstabelecimentoCreate,
     EstabelecimentoUpdate,
 )
-from ..services.geo_service import filtrar_por_raio, geocodificar_cep
+from ..services.geo_service import buscar_top_k_por_rota, geocodificar_cep
 from ..config import settings
 
 router = APIRouter(prefix="/api/estabelecimentos", tags=["Estabelecimentos"])
 
-TIPOS_VALIDOS = {"UPA", "Hospital"}
+TIPOS_VALIDOS = {"UPA", "Pronto Atendimento", "Hospital"}
+
+
+async def _formatar_estabelecimentos_proximos(
+    estabelecimentos: list[Estabelecimento],
+    lat: float,
+    lng: float,
+    raio_km: float,
+) -> list[EstabelecimentoResponse]:
+    try:
+        filtrados = await buscar_top_k_por_rota(estabelecimentos, lat, lng, raio_km)
+    except (httpx.HTTPError, ValueError) as e:
+        raise HTTPException(
+            status_code=502,
+            detail="Serviço de cálculo de rotas indisponível. Tente novamente mais tarde.",
+        ) from e
+
+    resultado = []
+    for estabelecimento, distancia in filtrados:
+        item = EstabelecimentoResponse.model_validate(estabelecimento)
+        item.distancia_km = distancia
+        resultado.append(item)
+    return resultado
 
 
 @router.get("/proximos", response_model=list[EstabelecimentoResponse])
-def buscar_por_coordenadas(
+async def buscar_por_coordenadas(
     lat: float = Query(..., description="Latitude do usuário"),
     lng: float = Query(..., description="Longitude do usuário"),
-    raio: Optional[float] = Query(None, description="Raio em km (ex: 20)"),
+    raio: Optional[float] = Query(None, description="Raio viário em km (ex: 20)"),
     tipo: Optional[str] = Query(None, description="Filtrar por tipo: UPA ou Hospital"),
     db: Session = Depends(get_db),
 ):
@@ -48,29 +70,17 @@ def buscar_por_coordenadas(
             )
         query = query.filter(Estabelecimento.tipo == tipo_normalizado)
 
-    todos = query.all()
-    filtrados = filtrar_por_raio(todos, lat, lng, raio_km)
-
-    resultado = []
-    for est, dist in filtrados:
-        item = EstabelecimentoResponse.model_validate(est)
-        item.distancia_km = dist
-        resultado.append(item)
-
-    return resultado
+    return await _formatar_estabelecimentos_proximos(query.all(), lat, lng, raio_km)
 
 
 @router.get("/por-cep", response_model=list[EstabelecimentoResponse])
 async def buscar_por_cep(
     cep: str = Query(..., description="CEP do usuário no formato 90000-000"),
-    raio: Optional[float] = Query(None, description="Raio em km (ex: 20)"),
+    raio: Optional[float] = Query(None, description="Raio viário em km (ex: 20)"),
     tipo: Optional[str] = Query(None, description="Filtrar por tipo: UPA ou Hospital"),
     db: Session = Depends(get_db),
 ):
-    """
-    Fallback caso o usuário negue a permissão de geolocalização no navegador.
-    Consulta o ViaCEP + Nominatim para converter o CEP em coordenadas e buscar próximos.
-    """
+    """Geocodifica o CEP e retorna os cinco estabelecimentos mais próximos por ruas."""
     raio_km = raio or settings.RAIO_PADRAO_KM
 
     try:
@@ -96,16 +106,7 @@ async def buscar_por_cep(
             )
         query = query.filter(Estabelecimento.tipo == tipo_normalizado)
 
-    todos = query.all()
-    filtrados = filtrar_por_raio(todos, lat, lng, raio_km)
-
-    resultado = []
-    for est, dist in filtrados:
-        item = EstabelecimentoResponse.model_validate(est)
-        item.distancia_km = dist
-        resultado.append(item)
-
-    return resultado
+    return await _formatar_estabelecimentos_proximos(query.all(), lat, lng, raio_km)
 
 
 @router.get("/tipos")

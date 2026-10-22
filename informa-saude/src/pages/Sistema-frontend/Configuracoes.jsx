@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Trash2 } from 'lucide-react';
-import fotoPerfilInicial from '../../assets/images/foto-perfil.webp';
 import {
   SystemNavbar,
   TituloPaginaSistema,
@@ -9,28 +8,21 @@ import {
   ModalConfirmacao,
   ToastFeedback
 } from '../../components';
+import { obterFotoPerfil } from '../../utils/fotoPerfil';
+import { obterEmailUsuario, obterNomeUsuario } from '../../utils/usuario';
 
 export function Configuracoes() {
   const navigate = useNavigate();
+  const nomeUsuario = obterNomeUsuario();
+  const emailUsuario = obterEmailUsuario();
   const [modalDeletar, setModalDeletar] = useState(false);
   const [notificacoesAtivas, setNotificacoesAtivas] = useState(true);
   const [toastConfig, setToastConfig] = useState(null);
-  const [foto, setFoto] = useState(() => {
-    const fotoSalva = localStorage.getItem('informa-saude-foto-perfil');
-    if (fotoSalva === 'null') return null;
-    return fotoSalva || fotoPerfilInicial;
-  });
+  const [foto, setFoto] = useState(obterFotoPerfil);
 
   useEffect(() => {
     const atualizarFoto = () => {
-      const fotoSalva = localStorage.getItem('informa-saude-foto-perfil');
-      if (fotoSalva === 'null') {
-        setFoto(null);
-      } else if (fotoSalva) {
-        setFoto(fotoSalva);
-      } else {
-        setFoto(fotoPerfilInicial);
-      }
+      setFoto(obterFotoPerfil());
     };
 
     window.addEventListener('storage', atualizarFoto);
@@ -69,8 +61,8 @@ export function Configuracoes() {
         <div className="row g-4">
           <div className="col-12 col-lg-4">
             <CardPerfilSidebar
-              nome="João Da Silva"
-              email="joaodasilva@example.com"
+              nome={nomeUsuario}
+              email={emailUsuario}
               foto={foto}
               podeEditar={false}
             />

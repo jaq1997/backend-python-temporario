@@ -1,6 +1,5 @@
-import { createContext, useContext, useState } from 'react';
-
-const UserContext = createContext();
+import { useState } from 'react';
+import { UserContext } from './userContextStore';
 
 export function UserProvider({ children }) {
   const [usuario, setUsuario] = useState(() => {
@@ -16,7 +15,7 @@ export function UserProvider({ children }) {
   });
 
   const [jornadaRecomendada, setJornadaRecomendada] = useState(() => {
-    return localStorage.getItem('informa-saude-jornada-destaque') || 'cardiaca';
+    return localStorage.getItem('informa-saude-jornada-destaque') || null;
   });
 
   const atualizarUsuario = (novosDados) => {
@@ -29,7 +28,11 @@ export function UserProvider({ children }) {
 
   const atualizarJornada = (jornadaKey) => {
     setJornadaRecomendada(jornadaKey);
-    localStorage.setItem('informa-saude-jornada-destaque', jornadaKey);
+    if (jornadaKey) {
+      localStorage.setItem('informa-saude-jornada-destaque', jornadaKey);
+    } else {
+      localStorage.removeItem('informa-saude-jornada-destaque');
+    }
   };
 
   return (
@@ -37,8 +40,4 @@ export function UserProvider({ children }) {
       {children}
     </UserContext.Provider>
   );
-}
-
-export function useUser() {
-  return useContext(UserContext);
 }

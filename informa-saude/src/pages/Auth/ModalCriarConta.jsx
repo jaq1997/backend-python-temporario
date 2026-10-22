@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { AuthModalLayout } from './AuthModalLayout';
 import { FormInput } from '../../components';
+import { useUser } from '../../context/userContextStore';
 
 const OPCOES_SEXO = [
   { id: 'sexoFem', valor: 'Feminino' },
@@ -33,7 +34,7 @@ const validarDataNascimento = (dataStr) => {
 
 const validarRequisitosSenha = (senha) => {
   const minCaracteres = senha.length >= 6;
-  const temSimbolo = /[@#%*!$&&^\-_+=\[{\]:;'"<>,.?\/|\\]/.test(senha);
+  const temSimbolo = /[^a-zA-Z0-9\s]/.test(senha);
   const temMaiuscula = /[A-Z]/.test(senha);
   const temMinuscula = /[a-z]/.test(senha);
   const temNumero = /\d/.test(senha);
@@ -50,6 +51,7 @@ const validarRequisitosSenha = (senha) => {
 
 export function ModalCriarConta({ onClose, onAbrirLogin }) {
   const navigate = useNavigate();
+  const { atualizarUsuario, atualizarJornada } = useUser();
   const [etapaCadastro, setEtapaCadastro] = useState(1);
   const [dadosCadastro, setDadosCadastro] = useState({
     nome: '',
@@ -121,6 +123,9 @@ export function ModalCriarConta({ onClose, onAbrirLogin }) {
       novoUsuario
     ]));
     localStorage.setItem('informa-saude-usuario-ativo', JSON.stringify(novoUsuario));
+    localStorage.removeItem('informa-saude-conteudos-em-andamento');
+    atualizarUsuario(novoUsuario);
+    atualizarJornada(null);
     setFeedback('sucesso');
   };
 
@@ -134,13 +139,6 @@ export function ModalCriarConta({ onClose, onAbrirLogin }) {
     setDadosCadastro((dadosAtuais) => ({
       ...dadosAtuais,
       [campo]: valor
-    }));
-  };
-
-  const alternarVisibilidadeSenha = (campo) => {
-    setSenhasVisiveis((estadoAtual) => ({
-      ...estadoAtual,
-      [campo]: !estadoAtual[campo]
     }));
   };
 
