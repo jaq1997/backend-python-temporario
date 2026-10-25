@@ -13,3 +13,7 @@ informa-saude/src/assets/images/*.png
 .env
 .env.*
 !.env.example
+.venv/
+venv/
+__pycache__/
+*.pyc
