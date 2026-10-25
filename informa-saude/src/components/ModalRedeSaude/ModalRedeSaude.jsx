@@ -11,6 +11,15 @@ export function ModalRedeSaude({ aberto, aoFechar }) {
   const [cep, setCep] = useState('');
   const [precisaoLocalizacao, setPrecisaoLocalizacao] = useState(null);
 
+  const obterHeadersComToken = () => {
+    const token = localStorage.getItem('access_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  };
+
   const buscarPorGPS = () => {
     setCarregando(true);
     setErro('');
@@ -49,13 +58,18 @@ export function ModalRedeSaude({ aberto, aoFechar }) {
         try {
           const url = `${API_BASE_URL}/api/estabelecimentos/proximos?lat=${latitude}&lng=${longitude}&raio=20`;
 
-          const res = await fetch(url);
+          const res = await fetch(url, {
+            headers: obterHeadersComToken(),
+          });
+          if (res.status === 401) {
+            throw new Error('Você precisa estar logado para acessar a rede de saúde.');
+          }
           if (!res.ok) throw new Error('Erro ao buscar estabelecimentos próximos.');
           const dados = await res.json();
           setEstabelecimentos(dados);
           setBuscaRealizada(true);
-        } catch {
-          setErro('Não foi possível conectar ao backend ou carregar estabelecimentos.');
+        } catch (err) {
+          setErro(err.message || 'Não foi possível conectar ao backend ou carregar estabelecimentos.');
         } finally {
           setCarregando(false);
         }
@@ -88,10 +102,15 @@ export function ModalRedeSaude({ aberto, aoFechar }) {
     try {
       const url = `${API_BASE_URL}/api/estabelecimentos/por-cep?cep=${cepLimpo}&raio=20`;
 
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: obterHeadersComToken(),
+      });
+      if (res.status === 401) {
+        throw new Error('Você precisa estar logado para acessar a rede de saúde.');
+      }
       if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.detail || 'CEP não encontrado.');
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || 'CEP não encontrado ou fora da cobertura.');
       }
       const dados = await res.json();
       setEstabelecimentos(dados);

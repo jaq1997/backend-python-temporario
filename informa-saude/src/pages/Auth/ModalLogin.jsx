@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { AuthModalLayout } from './AuthModalLayout';
 import { FormInput } from '../../components';
 import googleIcon from '../../assets/images/google.svg';
+import { API_BASE_URL } from '../../config/api';
 
 export function ModalLogin({ onClose, onAbrirCadastro }) {
   const navigate = useNavigate();
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState('');
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -16,20 +19,56 @@ export function ModalLogin({ onClose, onAbrirCadastro }) {
     };
   }, []);
 
-  const handleEntrar = (e) => {
+  const handleEntrar = async (e) => {
     e.preventDefault();
-    onClose();
-    navigate('/inicio');
+    setErro('');
+    setCarregando(true);
+
+    try {
+      const resposta = await fetch(`${API_BASE_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: usuario.trim(),
+          senha: senha,
+        }),
+      });
+
+      if (!resposta.ok) {
+        const erroDados = await resposta.json().catch(() => ({}));
+        throw new Error(erroDados.detail || 'E-mail ou senha incorretos.');
+      }
+
+      const dados = await resposta.json();
+      if (dados.access_token) {
+        localStorage.setItem('access_token', dados.access_token);
+      }
+
+      onClose();
+      navigate('/inicio');
+    } catch (err) {
+      setErro(err.message || 'Erro ao realizar login.');
+    } finally {
+      setCarregando(false);
+    }
   };
 
   return (
     <AuthModalLayout onClose={onClose} titulo="Acessar conta" centralizarConteudo>
       <form onSubmit={handleEntrar}>
+        {erro && (
+          <div className="alert alert-danger py-2 small mb-3" role="alert">
+            {erro}
+          </div>
+        )}
+
         <FormInput
           id="modal-usuario"
           label="Usuário ou E-mail"
           type="text"
-          placeholder="Digite seu usuário ou e-mail"
+          placeholder="Digite seu e-mail cadastrado"
           value={usuario}
           onChange={(e) => setUsuario(e.target.value)}
           required
@@ -53,8 +92,12 @@ export function ModalLogin({ onClose, onAbrirCadastro }) {
         </div>
 
         <div className="d-flex flex-column gap-2 mt-2">
-          <button type="submit" className="is-btn is-btn--orange w-100 fs-6 py-2">
-            Acessar conta
+          <button 
+            type="submit" 
+            className="is-btn is-btn--orange w-100 fs-6 py-2"
+            disabled={carregando}
+          >
+            {carregando ? 'Entrando...' : 'Acessar conta'}
           </button>
 
           <div className="d-flex align-items-center gap-2 my-1">

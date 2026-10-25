@@ -532,7 +532,7 @@ def processar_questionario(
 
 
 @app.get("/api/estabelecimentos/proximos", response_model=list[schemas.EstabelecimentoResponse])
-def buscar_estabelecimentos_proximos(
+async def buscar_estabelecimentos_proximos(
     lat: float,
     lng: float,
     raio: float = 10.0,
@@ -546,7 +546,7 @@ def buscar_estabelecimentos_proximos(
         query = query.filter(models.Estabelecimento.tipo.ilike(tipo.strip()))
 
     todos = query.all()
-    filtrados = geo.filtrar_por_raio(todos, lat, lng, raio)
+    filtrados = await geo.filtrar_por_raio(todos, lat, lng, raio)
 
     resposta = []
     for est, dist in filtrados:
@@ -587,7 +587,7 @@ async def buscar_estabelecimentos_por_cep(
         query = query.filter(models.Estabelecimento.tipo.ilike(tipo.strip()))
 
     todos = query.all()
-    filtrados = geo.filtrar_por_raio(todos, lat, lng, raio)
+    filtrados = await geo.filtrar_por_raio(todos, lat, lng, raio)
 
     resposta = []
     for est, dist in filtrados:
