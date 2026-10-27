@@ -23,9 +23,7 @@ export { ScrollToTop } from './ScrollToTop/ScrollToTop';
 export { DropdownSistema } from './DropdownSistema/DropdownSistema';
 export { IconeContraste } from './IconeContraste/IconeContraste';
 export { ModalRedeSaude } from './ModalRedeSaude/ModalRedeSaude';
-
-
-
-
-
-
+export { default as CardDiasAprendidos } from './CardDiasAprendidos/CardDiasAprendidos';
+export { default as CardProgressoSemanal } from './CardProgressoSemanal/CardProgressoSemanal';
+export { default as XPChart } from './XPChart/XPChart';
+export { default as CardStat } from './CardStat/CardStat';

@@ -191,6 +191,7 @@ export function HomeSistema() {
             titulo="Acompanhe seu progresso"
             textoBotao="Veja suas estatísticas"
             varianteBotao="outline-white"
+            to="/dashboard"
           />
         </section>
       </main>

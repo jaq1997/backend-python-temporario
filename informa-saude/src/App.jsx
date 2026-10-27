@@ -15,6 +15,7 @@ import Configuracoes from "./pages/Sistema-frontend/Configuracoes";
 import Questionario from "./pages/Questionario/Questionario";
 import NaoEncontrada from "./pages/NaoEncontrada/NaoEncontrada";
 import JornadaDetalhesPage from "./pages/Sistema-frontend/JornadaDetalhesPage";
+import Dashboard from "./pages/Dashboard/Dashboard";
 
 import { ScrollToTop } from './components';
 import { UserProvider } from './context/UserContext.jsx';
@@ -70,6 +71,7 @@ function App() {
           <Route path="/404" element={<NaoEncontrada />} />
           <Route path="/404.html" element={<NaoEncontrada />} />
           <Route path="*" element={<NaoEncontrada />} />
+          <Route path="/dashboard" element={<Dashboard />} />
         </Routes>
       </BrowserRouter>
     </UserProvider>
